@@ -1,11 +1,9 @@
 /**
  * zamaEncrypt.js — src/lib/zamaEncrypt.js
  */
+import { parseUnits } from 'viem';
 
-console.log('[zamaEncrypt] module loaded — version 5');
-
-import { initSDK, createInstance } from '@zama-fhe/relayer-sdk/web';
-import { parseUnits }              from 'viem';
+const { initSDK, createInstance } = await import('@zama-fhe/relayer-sdk/web');
 
 const SEPOLIA_CONFIG = {
   chainId:        11155111,
