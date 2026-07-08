@@ -17,14 +17,10 @@ import {
   KeyRound,
   ArrowRight,
   ExternalLink,
-  Cpu
+  Cpu,
+  BookOpen
 } from 'lucide-react';
 
-// ── Config ────────────────────────────────────────────────────────────────────
-const LINKS = {
-  github: 'https://github.com/YOUR_ORG/zeroremit',
-  etherscanPaymentRouter: 'https://sepolia.etherscan.io/address/YOUR_PAYMENT_ROUTER_ADDRESS#code',
-};
 
 // ── Reveal hook ───────────────────────────────────────────────────────────────
 function useReveal(threshold = 0.12, delay = 0) {
@@ -186,6 +182,7 @@ function CipherText({ text, className = '', active = true, pause = 3000 }) {
   return <span className={`font-mono font-bold ${className}`}>{display}</span>;
 }
 
+
 // ── Live status badge ────────────────────────────────────────────────────────
 function TrustBadge({ label }) {
   return (
@@ -250,14 +247,12 @@ function Step({ n, title, desc, bullets, delay = 0 }) {
 const trustItems = [
   {
     title: 'Open Source',
-    desc: 'Fully auditable contracts and client code — nothing hidden.',
-    href: LINKS.github,
+    desc: 'Fully auditable contracts and client code, nothing hidden.',
     icon: <GitBranch className="w-5 h-5 text-sky-400" strokeWidth={1.5} />,
   },
   {
     title: 'Verified On Etherscan',
     desc: 'Every contract is source-verified and publicly readable.',
-    href: LINKS.etherscanPaymentRouter,
     icon: <BadgeCheck className="w-5 h-5 text-emerald-400" strokeWidth={1.5} />,
   },
   {
@@ -422,12 +417,12 @@ export default function Home() {
 
             <p className="text-base sm:text-lg text-zinc-300 max-w-2xl mx-auto leading-relaxed font-sans normal-case">
               Confidential invoicing on Ethereum. Send requests, share links,
-              and receive payments using <strong className="text-white font-mono font-medium tracking-wide">Zama FHE</strong> — the blockchain never reveals what you charged.
+              and receive payments using <strong className="text-white font-mono font-medium tracking-wide">Zama FHE.</strong> The blockchain never reveals what you charged.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-6">
               <Link
-                to="/create"
+                to="/explorer"
                 className="group relative px-10 py-4 bg-zinc-100 text-zinc-950 font-bold text-xs tracking-widest uppercase transition-all overflow-hidden rounded shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-15px_rgba(255,255,255,0.5)] active:scale-95 flex items-center justify-center gap-3 w-full sm:w-auto"
               >
                 <div className="absolute inset-0 bg-white translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-out" />
@@ -436,15 +431,13 @@ export default function Home() {
                   <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" />
                 </span>
               </Link>
-              <a
-                href={LINKS.github}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/docs"
                 className="group px-10 py-4 border border-zinc-700 bg-zinc-900/50 hover:bg-zinc-800 hover:border-zinc-500 text-zinc-300 hover:text-white font-bold text-xs tracking-widest uppercase transition-all backdrop-blur-md flex items-center justify-center gap-3 w-full sm:w-auto rounded"
               >
-                <GitBranch className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
-                View Source
-              </a>
+                <BookOpen className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
+                View Docs
+              </Link>
             </div>
           </div>
         </div>
@@ -589,7 +582,12 @@ export default function Home() {
           </p>
 
           <p className="text-2xl sm:text-3xl lg:text-4xl text-center leading-relaxed tracking-tight text-white max-w-4xl mx-auto font-sans normal-case font-medium drop-shadow-md">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-emerald-400 font-bold">Zeroremit</span>{' '}
+            <CipherText
+              text="Zeroremit"
+              active={thesisVis}
+              pause={4000}
+              className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-emerald-400 font-bold"
+            />{' '}
             encrypts invoice amounts in your browser before your wallet ever
             signs. The blockchain stores <span className="inline-block relative"><span className="relative z-10 text-rose-400 font-mono font-bold px-2 bg-rose-500/10 border border-rose-500/20 rounded">ciphertext</span></span>, not the number.
           </p>
@@ -630,11 +628,11 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 relative z-10">
           <FeatureCard delay={100} icon={FeatureIcons.lock} title="FHE-Encrypted Amounts" desc="Your invoice amount is encrypted in your browser using Zama FHE before the transaction is ever signed. The ciphertext goes on-chain — not the number." />
-          <FeatureCard delay={200} icon={FeatureIcons.single} title="Single Invoices" desc="Send a fixed-amount invoice to one specific wallet address. The amount is private — only you and the named recipient can decrypt it." />
-          <FeatureCard delay={300} icon={FeatureIcons.multi} title="Itemized Invoices" desc="Create an open invoice with line items that anyone with the link can pay. Amounts are publicly visible here so payers can verify what they owe before paying." />
+          <FeatureCard delay={200} icon={FeatureIcons.single} title="Single Invoices" desc="Send a fixed-amount invoice to one specific wallet address. The amount is private, only you and the named recipient can decrypt it." />
+          <FeatureCard delay={300} icon={FeatureIcons.multi} title="Itemized Invoices" desc="Create an invoice for multiple recipients where amounts can be decrypted by anyone with a link but still stays encrypted on-chain." />
           <FeatureCard delay={400} icon={FeatureIcons.heart} title="Donation Pages" desc="Launch a public fundraising page. Each donor encrypts their contribution in their own browser before submitting. Individual donation amounts stay private." />
-          <FeatureCard delay={500} icon={FeatureIcons.qr} title="Shareable Payment Links" desc="Every invoice generates a unique payment URL and QR code. Share the link anywhere — the payer opens it, connects their wallet, and pays easily." />
-          <FeatureCard delay={600} icon={FeatureIcons.bell} title="Real-Time Telegram Alerts" desc="Link your wallet to the Zeroremit Telegram bot. Get an instant message when an invoice is paid, check your balance, and manage invoices from chat." />
+          <FeatureCard delay={500} icon={FeatureIcons.qr} title="Shareable Payment Links" desc="Every invoice generates a unique payment URL and QR code. Share the link anywhere, the payer opens it, connects their wallet, and pays easily." />
+          <FeatureCard delay={600} icon={FeatureIcons.bell} title="Real-Time Telegram Alerts" desc="Link your wallet to the Zeroremit Telegram bot. Get an instant message when an invoice is paid, check your balance, and manage invoices from the chat." />
         </div>
       </section>
 
@@ -794,12 +792,12 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <Link
-              to="/create"
+              to="/explorer"
               className="group relative w-full sm:w-auto px-12 py-5 bg-zinc-100 text-zinc-950 font-bold text-sm tracking-widest uppercase transition-all overflow-hidden rounded shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-15px_rgba(255,255,255,0.5)] active:scale-95 flex items-center justify-center gap-3"
             >
               <div className="absolute inset-0 bg-white translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-out" />
               <span className="relative z-10 flex items-center gap-2">
-                Create Invoice
+                Launch Zeroremit
                 <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1.5" />
               </span>
             </Link>
