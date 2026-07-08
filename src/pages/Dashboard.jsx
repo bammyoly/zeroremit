@@ -221,6 +221,11 @@ function ShimmerStyle() {
         0%, 100% { opacity: 0.4; transform: scale(1); }
         50%       { opacity: 0.7; transform: scale(1.05); }
       }
+      @keyframes gradientShift {
+        0%   { background-position: 0% 50%; }
+        50%  { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
       .skel-shimmer {
         background: linear-gradient(90deg,rgba(63,63,70,0) 0%,rgba(82,82,91,0.25) 50%,rgba(63,63,70,0) 100%);
         background-size: 1000px 100%;
@@ -231,6 +236,48 @@ function ShimmerStyle() {
         pointer-events: none; user-select: none;
       }
       .glow-pulse { animation: heroGlow 4s ease-in-out infinite; }
+
+      .stat-card {
+        position: relative;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+      .stat-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        padding: 1px;
+        background: linear-gradient(
+          120deg,
+          transparent 0%,
+          rgba(56,189,248,0) 30%,
+          rgba(56,189,248,0.5) 50%,
+          rgba(139,92,246,0.4) 70%,
+          transparent 100%
+        );
+        background-size: 200% 200%;
+        -webkit-mask: linear-gradient(#fff 0 0) content-box,
+                      linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        opacity: 0;
+        transition: opacity 0.35s ease;
+        animation: gradientShift 3s ease infinite;
+        pointer-events: none;
+      }
+      .stat-card:hover::after { opacity: 1; }
+
+      .stat-card-amber::after {
+        background: linear-gradient(
+          120deg,
+          transparent 0%,
+          rgba(245,158,11,0) 30%,
+          rgba(245,158,11,0.5) 50%,
+          rgba(251,191,36,0.3) 70%,
+          transparent 100%
+        );
+        background-size: 200% 200%;
+        animation: gradientShift 3s ease infinite;
+      }
     `}</style>
   );
 }
@@ -272,33 +319,45 @@ function LiveDot() {
 }
 
 // ─── Stat cards ───────────────────────────────────────────────────────────────
-function BigCard({ label, accent, children }) {
+
+function CardShell({ children, accent = 'sky', className = '' }) {
+  const variantClass = accent === 'amber' ? 'stat-card-amber' : '';
   return (
-    <div className="bg-zinc-900/10 border border-zinc-800/40 p-5 hover:border-sky-500/20 transition-all duration-300">
-      <div className={`text-[10px] font-bold uppercase tracking-widest font-mono mb-3 ${accent || 'text-zinc-400'}`}>
-        {label}
-      </div>
+    <div className={`stat-card ${variantClass} bg-zinc-900/10 border border-zinc-800/40
+      flex flex-col min-h-[140px] ${className}`}>
       {children}
     </div>
   );
 }
 
-function MetricRow({ value, unit, unitColor }) {
-  return (
-    <div className="flex items-baseline gap-2">
-      <span className="text-2xl font-bold text-zinc-100 tabular-nums font-mono">{value}</span>
-      <span className={`text-[10px] font-bold uppercase tracking-widest font-mono ${unitColor || 'text-zinc-600'}`}>{unit}</span>
-    </div>
-  );
-}
-
 function StatCard({ label, value, sub, accent }) {
+  const accentToShell = {
+    'text-emerald-400': 'emerald',
+    'text-amber-400':   'amber',
+    'text-rose-400':    'rose',
+    'text-violet-400':  'violet',
+    'text-sky-400':     'sky',
+  };
+  const shellAccent = accentToShell[accent] || 'sky';
+
   return (
-    <div className="bg-zinc-900/10 border border-zinc-800/40 p-5 hover:border-sky-500/20 transition-all duration-300">
-      <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 font-mono">{label}</div>
-      <div className={`text-3xl font-bold leading-none tabular-nums font-mono ${accent || 'text-zinc-100'}`}>{value}</div>
-      {sub && <div className="text-[10px] text-zinc-500 mt-2 font-mono uppercase tracking-wide">{sub}</div>}
-    </div>
+    <CardShell accent={shellAccent}>
+      <div className="flex flex-col justify-between h-full p-5">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 font-mono">
+          {label}
+        </div>
+        <div className="mt-3">
+          <div className={`text-3xl font-bold leading-none tabular-nums font-mono ${accent || 'text-zinc-100'}`}>
+            {value}
+          </div>
+          {sub && (
+            <div className="text-[10px] text-zinc-500 mt-2 font-mono uppercase tracking-wide">
+              {sub}
+            </div>
+          )}
+        </div>
+      </div>
+    </CardShell>
   );
 }
 
@@ -1706,90 +1765,120 @@ function BurnerBalanceCard({
 }) {
   if (!burner) {
     return (
-      <div className="bg-zinc-900/10 border border-zinc-800/40 p-5 hover:border-amber-500/20 transition-all duration-300 flex flex-col">
-        <div className="text-[10px] font-bold uppercase tracking-widest font-mono mb-4 text-amber-500">
-          Burner Wallet
+      <CardShell accent="amber">
+        <div className="flex flex-col h-full p-5">
+          <div className="text-[10px] font-bold uppercase tracking-widest font-mono text-amber-500 mb-4">
+            Burner Wallet
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center py-4 text-center">
+            <p className="text-xs text-zinc-500 font-sans normal-case mb-1">No burner wallet</p>
+            <p className="text-[10px] text-zinc-600 font-mono">Create one in Automation tab.</p>
+          </div>
+          <div className="border-t border-zinc-800/60 my-4" />
+          <div className="w-full h-9 bg-zinc-800/40 border border-zinc-700/30
+            flex items-center justify-center opacity-30 cursor-not-allowed">
+            <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-zinc-500">
+              No burner
+            </span>
+          </div>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
-          <p className="text-xs text-zinc-500 font-sans normal-case mb-2">No burner wallet</p>
-          <p className="text-[10px] text-zinc-600 font-mono">Create one in the Automation tab.</p>
-        </div>
-      </div>
+      </CardShell>
     );
   }
 
   return (
-    <div className="bg-zinc-900/10 border border-zinc-800/40 p-5 hover:border-amber-500/20 transition-all duration-300 flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-[10px] font-bold uppercase tracking-widest font-mono text-amber-500">
-          Burner Wallet
-        </div>
-        <span className={`inline-flex items-center gap-1 text-[9px] font-bold font-mono px-1.5 py-0.5 border uppercase tracking-wide ${
-          burner.automationEnabled
-            ? 'bg-amber-950/60 text-amber-500 border-amber-900/40'
-            : 'bg-zinc-800/60 text-zinc-500 border-zinc-700/40'
-        }`}>
-          <span className={`w-1 h-1 ${burner.automationEnabled ? 'bg-amber-500 animate-pulse' : 'bg-zinc-600'}`}/>
-          {burner.automationEnabled ? 'Live' : 'Off'}
-        </span>
-      </div>
+    <CardShell accent="amber">
+      <div className="flex flex-col h-full p-5">
 
-      {/* ETH */}
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
-          {ethBal !== null ? Number(formatEther(ethBal)).toFixed(4) : '—'}
-        </span>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 font-mono">ETH</span>
-      </div>
-
-      {/* USDC */}
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
-          {usdcBal !== null ? fmtUsdc(usdcBal) : '—'}
-        </span>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 font-mono">USDC</span>
-      </div>
-
-      {/* cUSDC */}
-      <div className="mb-4">
-        <div className="flex items-baseline justify-between gap-2">
-          {isCusdcDecrypted && cusdcVal !== null ? (
-            <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
-              {fmtUsdc(cusdcVal)}
-            </span>
-          ) : cusdcHandle ? (
-            <span className="text-lg font-bold text-zinc-500 tabular-nums font-mono tracking-wider">••••••</span>
-          ) : (
-            <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">0.00</span>
-          )}
-          <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400 font-mono">cUSDC</span>
-        </div>
-        {cusdcHandle && !isCusdcDecrypted && (
-          <div className="mt-1">
-            <SmallDecryptButton
-              onClick={onDecryptBurnerCusdc}
-              decrypting={decryptingBurner}
-              sdkReady={sdkReady}
-              hasHandle={!!cusdcHandle}
-              decryptStatus={decryptStatus}
-              accent="amber"
-            />
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-[10px] font-bold uppercase tracking-widest font-mono text-amber-500">
+            Burner Wallet
           </div>
-        )}
-      </div>
+          <span className={`inline-flex items-center gap-1 text-[9px] font-bold font-mono
+            px-1.5 py-0.5 border uppercase tracking-wide ${
+            burner.automationEnabled
+              ? 'bg-amber-950/60 text-amber-500 border-amber-900/40'
+              : 'bg-zinc-800/60 text-zinc-500 border-zinc-700/40'
+          }`}>
+            <span className={`w-1 h-1 ${
+              burner.automationEnabled ? 'bg-amber-500 animate-pulse' : 'bg-zinc-600'
+            }`} />
+            {burner.automationEnabled ? 'Live' : 'Off'}
+          </span>
+        </div>
 
-      {/* Fund Burner button (orange) */}
-      <button onClick={onFund}
-        className="mt-auto w-full h-9 bg-amber-500 hover:bg-amber-400 text-zinc-900 text-[10px] font-bold font-mono uppercase tracking-widest transition-all active:scale-[0.98] shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5">
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
-        </svg>
-        Fund Burner
-      </button>
-    </div>
+        <div className="flex-1 space-y-3">
+
+          {/* ETH */}
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
+              {ethBal !== null ? Number(formatEther(ethBal)).toFixed(4) : '—'}
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 font-mono">
+              ETH
+            </span>
+          </div>
+
+          {/* USDC */}
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
+              {usdcBal !== null ? fmtUsdc(usdcBal) : '—'}
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 font-mono">
+              USDC
+            </span>
+          </div>
+
+          {/* cUSDC */}
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              {isCusdcDecrypted && cusdcVal !== null ? (
+                <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
+                  {fmtUsdc(cusdcVal)}
+                </span>
+              ) : cusdcHandle ? (
+                <span className="text-lg font-bold text-zinc-500 tabular-nums font-mono tracking-wider">
+                  ••••••
+                </span>
+              ) : (
+                <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">0.00</span>
+              )}
+              {cusdcHandle && !isCusdcDecrypted && (
+                <SmallDecryptButton
+                  onClick={onDecryptBurnerCusdc}
+                  decrypting={decryptingBurner}
+                  sdkReady={sdkReady}
+                  hasHandle={!!cusdcHandle}
+                  decryptStatus={decryptStatus}
+                  accent="amber"
+                />
+              )}
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400 font-mono self-start">
+              cUSDC
+            </span>
+          </div>
+
+        </div>
+
+        <div className="border-t border-zinc-800/60 my-4" />
+
+        <button
+          onClick={onFund}
+          className="w-full h-9 bg-amber-500 hover:bg-amber-400 text-zinc-900
+            text-[10px] font-bold font-mono uppercase tracking-widest transition-all
+            active:scale-[0.98] shadow-md shadow-amber-500/20
+            flex items-center justify-center gap-1.5">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
+          </svg>
+          Fund Burner
+        </button>
+
+      </div>
+    </CardShell>
   );
 }
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DUAL DONUT CARD — shows main + burner side by side
@@ -3023,72 +3112,91 @@ function MainWalletCard({
   cusdcVal, cusdcHandle, cusdcReady, isCusdcDecrypted,
   onDecryptCusdc, decrypting, decryptStatus, sdkReady,
   onShieldClick,
-  onRefresh,
 }) {
   return (
-    <div className="bg-zinc-900/10 border border-zinc-800/40 p-5 hover:border-sky-500/20 transition-all duration-300 flex flex-col">
-      <div className="text-[10px] font-bold uppercase tracking-widest font-mono mb-4 text-sky-400">
-        Main Wallet
-      </div>
+    <CardShell accent="sky">
+      <div className="flex flex-col h-full p-5">
 
-      {/* ETH */}
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
-          {ethReady && isConnected ? fmtEth(ethBal) : '—'}
-        </span>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 font-mono">ETH</span>
-      </div>
-
-      {/* USDC */}
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
-          {usdcReady && isConnected ? fmtUsdc(usdcBal) : '—'}
-        </span>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 font-mono">USDC</span>
-      </div>
-
-      {/* cUSDC */}
-      <div className="mb-4">
-        <div className="flex items-baseline justify-between gap-2">
-          {isCusdcDecrypted && cusdcVal !== null ? (
-            <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
-              {fmtUsdc(cusdcVal)}
-            </span>
-          ) : cusdcHandle ? (
-            <span className="text-lg font-bold text-zinc-500 tabular-nums font-mono tracking-wider">••••••</span>
-          ) : (
-            <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
-              {isConnected ? '0.00' : '—'}
-            </span>
-          )}
-          <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400 font-mono">cUSDC</span>
+        <div className="text-[10px] font-bold uppercase tracking-widest font-mono text-sky-400 mb-4">
+          Main Wallet
         </div>
-        {isConnected && cusdcHandle && !isCusdcDecrypted && (
-          <div className="mt-1">
-            <SmallDecryptButton
-              onClick={onDecryptCusdc}
-              decrypting={decrypting}
-              sdkReady={sdkReady}
-              hasHandle={!!cusdcHandle}
-              decryptStatus={decryptStatus}
-              accent="sky"
-            />
-          </div>
-        )}
-      </div>
 
-      {/* Shield / Unshield button (sky) */}
-      <button onClick={onShieldClick} disabled={!isConnected}
-        className="mt-auto w-full h-9 bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[10px] font-bold font-mono uppercase tracking-widest transition-all active:scale-[0.98] shadow-md shadow-sky-500/20 flex items-center justify-center gap-1.5">
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zM10 7a2 2 0 114 0v1H10V7z"/>
-        </svg>
-        Shield · Unshield
-      </button>
-    </div>
+        <div className="flex-1 space-y-3">
+
+          {/* ETH */}
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
+              {ethReady && isConnected ? fmtEth(ethBal) : '—'}
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 font-mono">
+              ETH
+            </span>
+          </div>
+
+          {/* USDC */}
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
+              {usdcReady && isConnected ? fmtUsdc(usdcBal) : '—'}
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 font-mono">
+              USDC
+            </span>
+          </div>
+
+          {/* cUSDC */}
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              {isCusdcDecrypted && cusdcVal !== null ? (
+                <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
+                  {fmtUsdc(cusdcVal)}
+                </span>
+              ) : cusdcHandle ? (
+                <span className="text-lg font-bold text-zinc-500 tabular-nums font-mono tracking-wider">
+                  ••••••
+                </span>
+              ) : (
+                <span className="text-lg font-bold text-zinc-100 tabular-nums font-mono">
+                  {isConnected ? '0.00' : '—'}
+                </span>
+              )}
+              {isConnected && cusdcHandle && !isCusdcDecrypted && (
+                <SmallDecryptButton
+                  onClick={onDecryptCusdc}
+                  decrypting={decrypting}
+                  sdkReady={sdkReady}
+                  hasHandle={!!cusdcHandle}
+                  decryptStatus={decryptStatus}
+                  accent="sky"
+                />
+              )}
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400 font-mono self-start">
+              cUSDC
+            </span>
+          </div>
+
+        </div>
+
+        <div className="border-t border-zinc-800/60 my-4" />
+
+        <button
+          onClick={onShieldClick}
+          disabled={!isConnected}
+          className="w-full h-9 bg-sky-500 hover:bg-sky-400 disabled:opacity-40
+            disabled:cursor-not-allowed text-white text-[10px] font-bold font-mono
+            uppercase tracking-widest transition-all active:scale-[0.98]
+            shadow-md shadow-sky-500/20 flex items-center justify-center gap-1.5">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zM10 7a2 2 0 114 0v1H10V7z"/>
+          </svg>
+          Shield · Unshield
+        </button>
+
+      </div>
+    </CardShell>
   );
 }
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // INVOICE CREATION SPLIT CARD — Statistics row 3
@@ -3101,76 +3209,73 @@ function PaymentSplitCard({ mainCount, burnerCount, hasBurner }) {
   const burnerPct = total > 0 ? Math.round((burnerCount / total) * 100) : 0;
 
   return (
-    <div className="bg-zinc-900/10 border border-zinc-800/40 p-5 hover:border-sky-500/20 transition-all duration-300">
-      <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 font-mono">
-        Invoice Creation Split
-      </div>
+    <CardShell accent="sky">
+      <div className="flex flex-col h-full p-5">
 
-      {total === 0 ? (
-        <div className="py-4">
-          <p className="text-xs text-zinc-500 font-sans normal-case">No invoices created yet</p>
+        <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 font-mono mb-4">
+          Invoice Creation Split
         </div>
-      ) : (
-        <>
-          {/* Percentages row — main left, burner right */}
-          <div className="flex items-baseline justify-between mb-3">
-            <div className="text-left">
-              <div className="text-2xl font-bold text-zinc-100 tabular-nums font-mono">
-                {mainPct}%
-              </div>
-              <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 font-mono mt-0.5">
-                Main
-              </div>
-            </div>
 
-            {hasBurner && (
-              <div className="text-right">
-                <div className="text-2xl font-bold text-amber-500 tabular-nums font-mono">
-                  {burnerPct}%
+        {total === 0 ? (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-xs text-zinc-500 font-sans normal-case">No invoices yet</p>
+          </div>
+        ) : (
+          <div className="flex flex-col justify-between flex-1">
+
+            <div className="flex items-end justify-between mb-4">
+              <div>
+                <div className="text-3xl font-bold text-zinc-100 tabular-nums font-mono leading-none">
+                  {mainPct}%
                 </div>
-                <div className="text-[9px] font-bold uppercase tracking-widest text-amber-500/70 font-mono mt-0.5">
-                  Burner
+                <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 font-mono mt-1">
+                  Main
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Bar visualization */}
-          {hasBurner ? (
-            <div className="h-1.5 bg-zinc-900 overflow-hidden flex">
-              <div
-                className="h-full bg-zinc-100 transition-all"
-                style={{ width: `${mainPct}%` }}
-              />
-              <div
-                className="h-full bg-amber-500 transition-all"
-                style={{ width: `${burnerPct}%` }}
-              />
+              {hasBurner && (
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-amber-500 tabular-nums font-mono leading-none">
+                    {burnerPct}%
+                  </div>
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-amber-500/70 font-mono mt-1">
+                    Burner
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="h-1.5 bg-zinc-900 overflow-hidden">
-              <div className="h-full bg-zinc-100 transition-all" style={{ width: '100%' }} />
-            </div>
-          )}
 
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wide">
-              {mainCount} main
-            </span>
-            {hasBurner && (
-              <span className="text-[10px] text-amber-500 font-mono uppercase tracking-wide">
-                {burnerCount} burner
-              </span>
-            )}
+            <div>
+              <div className="h-1.5 bg-zinc-900 overflow-hidden flex mb-3">
+                <div
+                  className="h-full bg-zinc-100 transition-all duration-500"
+                  style={{ width: `${hasBurner ? mainPct : 100}%` }}
+                />
+                {hasBurner && (
+                  <div
+                    className="h-full bg-amber-500 transition-all duration-500"
+                    style={{ width: `${burnerPct}%` }}
+                  />
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wide">
+                  {mainCount} main
+                </span>
+                {hasBurner && (
+                  <span className="text-[10px] text-amber-500 font-mono uppercase tracking-wide">
+                    {burnerCount} burner
+                  </span>
+                )}
+              </div>
+            </div>
+
           </div>
-        </>
-      )}
-    </div>
+        )}
+
+      </div>
+    </CardShell>
   );
 }
-
-
-
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN DASHBOARD
@@ -3590,7 +3695,7 @@ const handleUnshieldFinalized = useCallback(() => {
         {pageTab === 'Statistics' && (
           <>
             {/* ── Row 1: Main Wallet · Burner Wallet · Total Invoices · Settled ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
               <LoadingShell loading={!usdcReady || !ethReady || !cusdcReady}>
                 <MainWalletCard
                   isConnected={isConnected}
@@ -3646,7 +3751,7 @@ const handleUnshieldFinalized = useCallback(() => {
             </div>
 
             {/* ── Row 2: Pending · Cancelled · Paid to you · Sent/Received ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
               <LoadingShell loading={statsLoading}>
                 <StatCard label="Pending"   accent="text-amber-400"   value={statsLoading ? '—' : stats.pending.toLocaleString()}   sub="awaiting payment" />
               </LoadingShell>
@@ -3662,7 +3767,7 @@ const handleUnshieldFinalized = useCallback(() => {
             </div>
 
             {/* ── Row 3: Donations · Multi-pay · Settlement Rate · Invoice Creation Split ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
               <LoadingShell loading={statsLoading}>
                 <StatCard label="Donations Received" accent="text-sky-400" value={statsLoading ? '—' : extraStats.donationsReceived.toLocaleString()} sub="on your donation pages" />
               </LoadingShell>

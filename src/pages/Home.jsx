@@ -1,6 +1,32 @@
 // src/pages/Home.jsx
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Lock,
+  FileText,
+  Layers,
+  Heart,
+  QrCode,
+  Bell,
+  Eye,
+  GitBranch,
+  BadgeCheck,
+  Fingerprint,
+  ShieldCheck,
+  Zap,
+  Globe,
+  KeyRound,
+  ArrowRight,
+  ExternalLink,
+} from 'lucide-react';
+
+// ── Config: fill these in with real values ────────────────────────────────────
+// Keeping these in one place so the two "verifiable" trust cards below always
+// point at something real instead of drifting out of sync with the contracts.
+const LINKS = {
+  github: 'https://github.com/YOUR_ORG/zeroremit', // TODO: real repo URL
+  etherscanPaymentRouter: 'https://sepolia.etherscan.io/address/YOUR_PAYMENT_ROUTER_ADDRESS#code', // TODO: real address
+};
 
 // ── Reveal hook ───────────────────────────────────────────────────────────────
 function useReveal(threshold = 0.12) {
@@ -23,26 +49,51 @@ const reveal = (visible, delay = '') =>
   }`;
 
 // ── Matrix background ─────────────────────────────────────────────────────────
+// Now pauses when the tab is hidden and skips entirely for prefers-reduced-motion,
+// instead of running an uncapped rAF loop forever regardless of visibility.
 function CryptographicMatrix() {
   const canvasRef = useRef(null);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
+    if (prefersReducedMotion) return; // static background, no animation cost
+
     const ctx = canvas.getContext('2d');
     let raf;
+    let running = true;
     let w = (canvas.width = canvas.offsetWidth);
     let h = (canvas.height = canvas.offsetHeight);
+
     const onResize = () => {
       if (!canvas) return;
       w = canvas.width = canvas.offsetWidth;
       h = canvas.height = canvas.offsetHeight;
     };
     window.addEventListener('resize', onResize);
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        running = false;
+        cancelAnimationFrame(raf);
+      } else if (!running) {
+        running = true;
+        raf = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
     const fs = 12;
     const cols = Math.floor(w / fs) + 1;
     const drops = Array(cols).fill(1);
     const chars = '0123456789ABCDEFØXαβγ'.split('');
-    const draw = () => {
+
+    function draw() {
+      if (!running) return;
       ctx.fillStyle = 'rgba(9,9,11,0.08)';
       ctx.fillRect(0, 0, w, h);
       ctx.font = `600 ${fs}px monospace`;
@@ -56,10 +107,17 @@ function CryptographicMatrix() {
         drops[i]++;
       }
       raf = requestAnimationFrame(draw);
-    };
+    }
     raf = requestAnimationFrame(draw);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); };
+
+    return () => {
+      running = false;
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', onResize);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
+
   return (
     <canvas
       ref={canvasRef}
@@ -121,26 +179,24 @@ function CipherText({ text, className = '', active = true, pause = 2600 }) {
   return <span className={`font-mono font-bold ${className}`}>{display}</span>;
 }
 
-function CheckItem({ children }) {
+// ── Live status badge (was dead code — now used under the hero CTA) ─────────
+function TrustBadge({ label }) {
   return (
-    <li className="flex gap-3 items-start">
-      <svg className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none"
-        stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/>
-      </svg>
-      <span className="text-[13px] text-zinc-300 font-sans normal-case leading-relaxed">{children}</span>
-    </li>
+    <span className="flex items-center gap-2 text-[11px] font-mono text-zinc-400 uppercase tracking-widest">
+      <span className="w-1.5 h-1.5 bg-emerald-400 flex-shrink-0 rounded-full" />
+      {label}
+    </span>
   );
 }
 
 // ── Feature card ──────────────────────────────────────────────────────────────
-function FeatureCard({ icon, iconColor, title, desc }) {
+function FeatureCard({ icon, title, desc }) {
   return (
     <div className="group p-7 bg-zinc-900/10 border border-zinc-800/40
       hover:border-sky-500/30 hover:bg-zinc-900/40 transition-all duration-300">
-      <div className={`w-11 h-11 bg-zinc-900/60 border border-zinc-800/60
+      <div className="w-11 h-11 bg-zinc-900/60 border border-zinc-800/60
         flex items-center justify-center mb-5
-        group-hover:border-sky-500/20 transition-all duration-200`}>
+        group-hover:border-sky-500/20 transition-all duration-200">
         {icon}
       </div>
       <h3 className="text-[13px] font-bold font-mono tracking-wider text-zinc-100 mb-3 uppercase">
@@ -178,90 +234,68 @@ function Step({ n, title, desc, bullets }) {
 }
 
 // ── Trust card data ───────────────────────────────────────────────────────────
+// Two of these (Open Source, Verified On Etherscan) are checkable claims, so
+// they now link straight to the proof instead of just asserting it in text.
 const trustItems = [
   {
     title: 'Open Source',
     desc: 'Fully auditable contracts and client code — nothing hidden.',
-    icon: (
-      <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10 20.5L4 12l6-8.5M14 3.5L20 12l-6 8.5" />
-      </svg>
-    ),
+    href: LINKS.github,
+    icon: <GitBranch className="w-5 h-5 text-sky-400" strokeWidth={1.5} />,
   },
   {
     title: 'Verified On Etherscan',
     desc: 'Every contract is source-verified and publicly readable.',
-    icon: (
-      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    ),
+    href: LINKS.etherscanPaymentRouter,
+    icon: <BadgeCheck className="w-5 h-5 text-emerald-400" strokeWidth={1.5} />,
   },
   {
     title: 'Zama FHE',
     desc: 'Fully Homomorphic Encryption keeps amounts computable while sealed.',
-    icon: (
-      <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-      </svg>
-    ),
+    icon: <Lock className="w-5 h-5 text-violet-400" strokeWidth={1.5} />,
   },
   {
     title: 'Dual Encryption',
     desc: 'Amounts are sealed both client-side and on-chain — two independent layers.',
-    icon: (
-      <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <circle cx="9" cy="12" r="5" strokeWidth="1.5" />
-        <circle cx="15" cy="12" r="5" strokeWidth="1.5" />
-      </svg>
-    ),
+    icon: <Fingerprint className="w-5 h-5 text-sky-400" strokeWidth={1.5} />,
   },
   {
     title: 'ZK Proofs',
     desc: 'Zero-knowledge validity proofs confirm payments without revealing values.',
-    icon: (
-      <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
+    icon: <ShieldCheck className="w-5 h-5 text-amber-400" strokeWidth={1.5} />,
   },
   {
     title: 'Automation',
     desc: 'Burner-key signing and webhooks keep invoices moving with zero clicks.',
-    icon: (
-      <svg className="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
+    icon: <Zap className="w-5 h-5 text-rose-400" strokeWidth={1.5} />,
   },
   {
     title: 'Sepolia Testnet',
     desc: 'Live on Ethereum Sepolia — inspect every transaction yourself.',
-    icon: (
-      <svg className="w-5 h-5 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4z" />
-      </svg>
-    ),
+    icon: <Globe className="w-5 h-5 text-zinc-300" strokeWidth={1.5} />,
   },
   {
     title: 'AES-256-GCM',
     desc: 'Transport-layer encryption backs every request end to end.',
-    icon: (
-      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <rect x="5" y="11" width="14" height="9" rx="1" strokeWidth="1.5" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 11V7a4 4 0 118 0v4" />
-      </svg>
-    ),
+    icon: <KeyRound className="w-5 h-5 text-emerald-400" strokeWidth={1.5} />,
   },
 ];
 
-function TrustCard({ icon, title, desc }) {
+function TrustCard({ icon, title, desc, href }) {
+  const Wrapper = href ? 'a' : 'div';
+  const linkProps = href
+    ? { href, target: '_blank', rel: 'noopener noreferrer' }
+    : {};
+
   return (
-    <div className="group relative flex-shrink-0 w-[280px] p-6 bg-zinc-950/70
-      border border-zinc-800/60 hover:border-sky-500/40 transition-colors duration-300
-      overflow-hidden">
+    <Wrapper
+      {...linkProps}
+      className="group relative flex-shrink-0 w-[280px] p-6 bg-zinc-950/70
+        border border-zinc-800/60 hover:border-sky-500/40 transition-colors duration-300
+        overflow-hidden block"
+    >
       <div className="absolute -bottom-6 -right-2 text-[80px] font-black text-zinc-900/60
-        select-none pointer-events-none font-['Chakra_Petch'] leading-none">
+        select-none pointer-events-none font-mono leading-none">
         {title.slice(0, 2).toUpperCase()}
       </div>
       <div className="relative z-10">
@@ -269,20 +303,24 @@ function TrustCard({ icon, title, desc }) {
           flex items-center justify-center mb-6 group-hover:border-sky-500/40 transition-colors">
           {icon}
         </div>
-        <h3 className="text-lg font-bold text-zinc-50 mb-2 tracking-tight
-          font-['Chakra_Petch'] uppercase">
+        <h3 className="text-lg font-bold font-mono text-zinc-50 mb-2 tracking-tight uppercase">
           {title}
         </h3>
         <p className="text-[12.5px] text-zinc-400 font-sans normal-case leading-relaxed pr-2">
           {desc}
         </p>
-        <svg className="w-4 h-4 text-sky-400 mt-5 transition-transform duration-300
-          group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-            d="M13 7l5 5m0 0l-5 5m5-5H6" />
-        </svg>
+        <div className="flex items-center gap-1.5 mt-5 text-sky-400">
+          {href ? (
+            <>
+              <ExternalLink className="w-4 h-4" />
+              <span className="text-[10px] font-mono uppercase tracking-widest">Verify</span>
+            </>
+          ) : (
+            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+          )}
+        </div>
       </div>
-    </div>
+    </Wrapper>
   );
 }
 
@@ -307,65 +345,31 @@ function TrustMarquee() {
   );
 }
 
-// ── SVG icons ─────────────────────────────────────────────────────────────────
-const Icons = {
-  lock: (color = 'text-sky-400') => (
-    <svg className={`w-5 h-5 ${color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-    </svg>
-  ),
-  single: (color = 'text-zinc-400') => (
-    <svg className={`w-5 h-5 ${color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
-    </svg>
-  ),
-  multi: (color = 'text-violet-400') => (
-    <svg className={`w-5 h-5 ${color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-    </svg>
-  ),
-  heart: (color = 'text-emerald-400') => (
-    <svg className={`w-5 h-5 ${color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-    </svg>
-  ),
-  qr: (color = 'text-sky-400') => (
-    <svg className={`w-5 h-5 ${color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 3.5V16M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4z"/>
-    </svg>
-  ),
-  bell: (color = 'text-amber-400') => (
-    <svg className={`w-5 h-5 ${color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-    </svg>
-  ),
-  eye: (
-    <svg className="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-    </svg>
-  ),
-  telegram: (
-    <svg className="w-5 h-5 text-sky-400" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-    </svg>
-  ),
-  shield: (
-    <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-    </svg>
-  ),
+// ── Feature icon set (was hand-rolled inline SVG — now lucide for consistency) ─
+const FeatureIcons = {
+  lock: <Lock className="w-5 h-5 text-sky-400" strokeWidth={2} />,
+  single: <FileText className="w-5 h-5 text-zinc-300" strokeWidth={1.5} />,
+  multi: <Layers className="w-5 h-5 text-violet-400" strokeWidth={1.5} />,
+  heart: <Heart className="w-5 h-5 text-emerald-400" strokeWidth={1.5} />,
+  qr: <QrCode className="w-5 h-5 text-sky-400" strokeWidth={1.5} />,
+  bell: <Bell className="w-5 h-5 text-amber-400" strokeWidth={1.5} />,
+  eye: <Eye className="w-5 h-5 text-rose-400" strokeWidth={1.5} />,
 };
 
-// ── Trust badge ───────────────────────────────────────────────────────────────
-function TrustBadge({ label }) {
-  return (
-    <span className="flex items-center gap-2 text-[11px] font-mono text-zinc-400 uppercase tracking-widest">
-      <span className="w-1.5 h-1.5 bg-emerald-400 flex-shrink-0" />
-      {label}
-    </span>
-  );
-}
+// Telegram doesn't have a lucide brand icon, so this one stays as a real SVG mark.
+const TelegramIcon = (
+  <svg className="w-5 h-5 text-sky-400" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+  </svg>
+);
+
+// Zapier's own webhook shape isn't a standard lucide icon, so this stays custom too.
+const WebhookIcon = (
+  <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+  </svg>
+);
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default function Home() {
@@ -377,10 +381,7 @@ export default function Home() {
   const [howRef,     howVis]     = useReveal();
   const [tgRef,      tgVis]     = useReveal();
   const [trustRef,   trustVis]  = useReveal();
-  const [statsRef,   statsVis]  = useReveal(0.2);
   const [ctaRef,     ctaVis]    = useReveal();
-
-  const goto = (path) => () => navigate(path);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-300 font-mono
@@ -407,26 +408,26 @@ export default function Home() {
           </h1>
 
           <p className="text-[15px] text-zinc-300 max-w-xl mx-auto leading-relaxed
-            font-sans normal-case mb-12">
+            font-sans normal-case mb-10">
             Private invoicing on Ethereum. Send payment requests, share payment link,
             and receive confidential payments using Zama FHE so the
             blockchain never reveals what you charged.
           </p>
 
-          <div className="flex items-center justify-center mb-16">
-            <button onClick={goto('/explorer')}
+          <div className="flex flex-col items-center gap-4 mb-16">
+            {/* Real <Link> now — supports cmd/ctrl-click, middle-click, and
+                gives crawlers/screen readers a real href instead of an onClick-only button. */}
+            <Link
+              to="/explorer"
               className="group w-full sm:w-auto px-10 py-4 bg-zinc-100 hover:bg-white
                 text-zinc-950 font-bold text-xs tracking-widest uppercase
                 transition-all shadow-lg shadow-white/10 active:scale-[0.98]
                 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400
                 flex items-center justify-center gap-3">
               Launch Zeroremit
-              <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                  d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </button>
+              <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" />
+            </Link>
+            <TrustBadge label="Live on Sepolia · Contracts verified" />
           </div>
 
           <div className="flex flex-wrap justify-center gap-4 border-t border-zinc-800/50 pt-10">
@@ -445,10 +446,10 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
             <div className="space-y-7">
-              <p className="text-xs font-bold tracking-widest text-rose-400 uppercase">
+              <p className="text-xs font-bold font-mono tracking-widest text-rose-400 uppercase">
                 // The problem
               </p>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight
+              <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight
                 text-white leading-snug uppercase">
                 Public blockchains expose every payment.
               </h2>
@@ -460,7 +461,7 @@ export default function Home() {
               </p>
               <ul className="space-y-4 pt-2">
                 <li className="flex gap-3 items-start">
-                  {Icons.eye}
+                  {FeatureIcons.eye}
                   <span className="text-[13px] text-zinc-300 font-sans normal-case leading-relaxed">
                     <strong className="text-zinc-100">Anyone can see your rates.</strong>{' '}
                     Competitors, clients, and block explorers all have access to
@@ -468,7 +469,7 @@ export default function Home() {
                   </span>
                 </li>
                 <li className="flex gap-3 items-start">
-                  {Icons.eye}
+                  {FeatureIcons.eye}
                   <span className="text-[13px] text-zinc-300 font-sans normal-case leading-relaxed">
                     <strong className="text-zinc-100">Your client relationships are traceable.</strong>{' '}
                     Payment history links your wallet to every business you've
@@ -476,7 +477,7 @@ export default function Home() {
                   </span>
                 </li>
                 <li className="flex gap-3 items-start">
-                  {Icons.eye}
+                  {FeatureIcons.eye}
                   <span className="text-[13px] text-zinc-300 font-sans normal-case leading-relaxed">
                     <strong className="text-zinc-100">Your revenue is visible.</strong>{' '}
                     Wallet balances and cumulative inflows are public on every
@@ -537,56 +538,56 @@ export default function Home() {
       </section>
 
       {/* ── THESIS BANNER ─────────────────────────────────────────────────── */}
-    <section ref={thesisRef}
-      className="relative border-y border-zinc-800/60 bg-zinc-900/20 overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-        w-[600px] h-[300px] bg-sky-500/[0.04] blur-[100px] rounded-full pointer-events-none" />
+      <section ref={thesisRef}
+        className="relative border-y border-zinc-800/60 bg-zinc-900/20 overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+          w-[600px] h-[300px] bg-sky-500/[0.04] blur-[100px] rounded-full pointer-events-none" />
 
-      <div className={`max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10
-        ${reveal(thesisVis)}`}>
+        <div className={`max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10
+          ${reveal(thesisVis)}`}>
 
-        <p className="text-xs font-bold tracking-widest text-sky-400 uppercase mb-6 text-center">
-          // How the encryption works
-        </p>
+          <p className="text-xs font-bold font-mono tracking-widest text-sky-400 uppercase mb-6 text-center">
+            // How the encryption works
+          </p>
 
-        <p className="text-xl sm:text-2xl lg:text-3xl text-center leading-relaxed
-          tracking-tight text-zinc-100 max-w-4xl mx-auto font-sans normal-case font-medium">
-          <CipherText text="Zeroremit" active={thesisVis} className="text-sky-400" />{' '}
-          encrypts invoice amounts in your browser using Zama FHE before your wallet
-          signs. The blockchain stores <span className="text-rose-400 font-mono font-bold">ciphertext</span> — not the number.
-        </p>
+          <p className="text-xl sm:text-2xl lg:text-3xl text-center leading-relaxed
+            tracking-tight text-zinc-100 max-w-4xl mx-auto font-sans normal-case font-medium">
+            <CipherText text="Zeroremit" active={thesisVis} className="text-sky-400" />{' '}
+            encrypts invoice amounts in your browser using Zama FHE before your wallet
+            signs. The blockchain stores <span className="text-rose-400 font-mono font-bold">ciphertext</span> — not the number.
+          </p>
 
-        <p className="text-[15px] text-zinc-400 text-center font-sans normal-case
-          leading-relaxed max-w-2xl mx-auto mt-8">
-          Only the invoice creator and the designated recipient hold the keys to decrypt
-          what was charged. Everyone else on the network sees an encrypted value —
-          permanently.
-        </p>
+          <p className="text-[15px] text-zinc-400 text-center font-sans normal-case
+            leading-relaxed max-w-2xl mx-auto mt-8">
+            Only the invoice creator and the designated recipient hold the keys to decrypt
+            what was charged. Everyone else on the network sees an encrypted value —
+            permanently.
+          </p>
 
-        <div className="flex items-center justify-center gap-6 mt-10 font-mono text-[11px]
-          text-zinc-500 uppercase tracking-widest">
-          <span className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-sky-400" /> Encrypted in-browser
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-emerald-400" /> Verified on-chain
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-violet-400" /> Decrypted by recipient only
-          </span>
+          <div className="flex items-center justify-center gap-6 mt-10 font-mono text-[11px]
+            text-zinc-500 uppercase tracking-widest">
+            <span className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-sky-400" /> Encrypted in-browser
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-emerald-400" /> Verified on-chain
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-violet-400" /> Decrypted by recipient only
+            </span>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
       {/* ── HOW EACH PIECE WORKS ──────────────────────────────────────────── */}
       <section ref={featRef}
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-28">
         <div className={reveal(featVis)}>
           <div className="mb-14">
-            <p className="text-xs font-bold tracking-widest text-sky-400 uppercase mb-3">
+            <p className="text-xs font-bold font-mono tracking-widest text-sky-400 uppercase mb-3">
               // How each piece works
             </p>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white uppercase">
+            <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-white uppercase">
               Every feature explained plainly.
             </h2>
           </div>
@@ -594,37 +595,37 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
             <FeatureCard
-              icon={Icons.lock('text-sky-400')}
+              icon={FeatureIcons.lock}
               title="FHE-Encrypted Amounts"
               desc="Your invoice amount is encrypted in your browser using Zama FHE before the transaction is ever signed. The ciphertext goes on-chain — not the number. No plaintext amount is stored anywhere on the blockchain or in our database."
             />
 
             <FeatureCard
-              icon={Icons.single('text-zinc-300')}
+              icon={FeatureIcons.single}
               title="Single Invoices"
               desc="Send a fixed-amount invoice to one specific wallet address. The amount is private — only you and the named recipient can decrypt it. Everyone else sees a ciphertext. The recipient pays in cUSDC directly from their wallet."
             />
 
             <FeatureCard
-              icon={Icons.multi('text-violet-400')}
+              icon={FeatureIcons.multi}
               title="Itemized Invoices"
               desc="Create an open invoice with line items that anyone with the link can pay. Amounts are publicly visible here so payers can verify what they owe before paying. Useful for splitting restaurant bills, event tickets, or team expenses."
             />
 
             <FeatureCard
-              icon={Icons.heart('text-emerald-400')}
+              icon={FeatureIcons.heart}
               title="Donation Pages"
               desc="Launch a public fundraising page with an optional goal amount and end date. Each donor encrypts their contribution in their own browser before submitting. You see total progress; individual donation amounts stay private."
             />
 
             <FeatureCard
-              icon={Icons.qr('text-sky-400')}
+              icon={FeatureIcons.qr}
               title="Shareable Payment Links"
               desc="Every invoice generates a unique payment URL and QR code from its on-chain ID. Share the link anywhere — the payer opens it, connects their wallet, and pays. No account or sign-up required on the payer's side."
             />
 
             <FeatureCard
-              icon={Icons.bell('text-amber-400')}
+              icon={FeatureIcons.bell}
               title="Real-Time Telegram Alerts"
               desc="Link your wallet to the Zeroremit Telegram bot. Get an instant message when an invoice is paid, a donation lands, or a due date is near. Check your balance and invoice list without opening the web app."
             />
@@ -638,10 +639,10 @@ export default function Home() {
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 border-t border-zinc-900/60">
         <div className={reveal(howVis)}>
           <div className="mb-14">
-            <p className="text-xs font-bold tracking-widest text-sky-400 uppercase mb-3">
+            <p className="text-xs font-bold font-mono tracking-widest text-sky-400 uppercase mb-3">
               // How it works
             </p>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white uppercase">
+            <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-white uppercase">
               From invoice to payment in three steps.
             </h2>
           </div>
@@ -681,17 +682,17 @@ export default function Home() {
         </div>
       </section>
 
-          {/* ── TELEGRAM + AUTOMATION ────────────────────────────────────────────── */}
+      {/* ── TELEGRAM + AUTOMATION ────────────────────────────────────────── */}
       <section ref={tgRef}
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 border-t border-zinc-900/60">
         <div className={reveal(tgVis)}>
 
           {/* Header */}
           <div className="mb-14">
-            <p className="text-xs font-bold tracking-widest text-sky-400 uppercase mb-3">
+            <p className="text-xs font-bold font-mono tracking-widest text-sky-400 uppercase mb-3">
               // Automation & integrations
             </p>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white uppercase max-w-2xl">
+            <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-white uppercase max-w-2xl">
               Your invoicing stack — automated end to end.
             </h2>
             <p className="text-[15px] text-zinc-300 font-sans normal-case leading-relaxed mt-4 max-w-2xl">
@@ -709,7 +710,7 @@ export default function Home() {
               hover:border-sky-500/20 transition-all duration-300 space-y-4">
               <div className="w-11 h-11 bg-zinc-900/60 border border-zinc-800/60
                 flex items-center justify-center">
-                {Icons.telegram}
+                {TelegramIcon}
               </div>
               <h3 className="text-[13px] font-bold font-mono text-zinc-100 uppercase tracking-wide">
                 Telegram Bot
@@ -733,9 +734,7 @@ export default function Home() {
               hover:border-amber-500/20 transition-all duration-300 space-y-4">
               <div className="w-11 h-11 bg-zinc-900/60 border border-zinc-800/60
                 flex items-center justify-center">
-                <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
+                <Zap className="w-5 h-5 text-amber-400" strokeWidth={2} />
               </div>
               <h3 className="text-[13px] font-bold font-mono text-zinc-100 uppercase tracking-wide">
                 Burner Wallet Automation
@@ -759,10 +758,7 @@ export default function Home() {
               hover:border-violet-500/20 transition-all duration-300 space-y-4">
               <div className="w-11 h-11 bg-zinc-900/60 border border-zinc-800/60
                 flex items-center justify-center">
-                <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
+                {WebhookIcon}
               </div>
               <h3 className="text-[13px] font-bold font-mono text-zinc-100 uppercase tracking-wide">
                 Zapier · Webhooks
@@ -815,18 +811,20 @@ export default function Home() {
         className="border-y border-zinc-800/60 bg-zinc-900/10 py-16">
         <div className={reveal(trustVis)}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 text-center">
-            <p className="text-xs font-bold tracking-widest text-sky-400 uppercase mb-3">
+            <p className="text-xs font-bold font-mono tracking-widest text-sky-400 uppercase mb-3">
               // Built on trust
             </p>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white uppercase
-              font-['Chakra_Petch']">
+            <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-white uppercase">
               The stack behind every invoice.
             </h2>
+            <p className="text-[13px] text-zinc-500 font-sans normal-case mt-3">
+              Cards marked <ExternalLink className="w-3 h-3 inline -mt-0.5" /> link straight to the source — verify it yourself.
+            </p>
           </div>
           <TrustMarquee />
         </div>
       </section>
-      
+
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
       <section ref={ctaRef}
         className="relative px-4 py-32 overflow-hidden border-t border-zinc-900/60">
@@ -834,7 +832,7 @@ export default function Home() {
           w-[450px] h-[250px] bg-sky-500/[0.03] blur-[100px] rounded-full
           pointer-events-none" />
         <div className={`max-w-2xl mx-auto text-center relative z-10 ${reveal(ctaVis)}`}>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white
+          <h2 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight text-white
             uppercase mb-6">
             Send your first private invoice.
           </h2>
@@ -845,18 +843,18 @@ export default function Home() {
             stays between you two.
           </p>
           <div className="flex items-center justify-center">
-            <button onClick={goto('/explorer')}
+            {/* Routes to /create now — this CTA is specifically about sending an
+                invoice, not general browsing, so it should land on invoice creation. */}
+            <Link
+              to="/create"
               className="group w-full sm:w-auto px-10 py-4 bg-zinc-100 hover:bg-white
                 text-zinc-950 font-bold text-xs tracking-widest uppercase
                 transition-all shadow-lg shadow-white/10 active:scale-[0.98]
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400
                 flex items-center justify-center gap-3">
-              Launch Zeroremit
-              <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                  d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </button>
+              Create an invoice
+              <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" />
+            </Link>
           </div>
         </div>
       </section>
