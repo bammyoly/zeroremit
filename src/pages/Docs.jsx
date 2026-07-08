@@ -95,7 +95,8 @@ const TABS = [
 // ── Shared doc components ─────────────────────────────────────────────────────
 function DocSection({ id, title, children }) {
   return (
-    <section id={id} className="mb-16 scroll-mt-40">
+    // Increased scroll-mt to 48 (12rem) or 52 to keep space for the nav
+    <section id={id} className="mb-16 scroll-mt-52"> 
       <h2 className="text-lg font-bold font-mono uppercase tracking-wide text-zinc-100 mb-5 pb-3 border-b border-zinc-800/60">
         {title}
       </h2>
@@ -226,9 +227,9 @@ function ArchDiagram({ lines }) {
 
 // ── Tab content components ────────────────────────────────────────────────────
 
-function OverviewTab() {
-  return (
-    <>
+function OverviewTab({ activeSectionId }) {
+  const sections = {
+    'what-is-zeroremit': (
       <DocSection id="what-is-zeroremit" title="What is Zeroremit">
         <p>
           Zeroremit is a confidential invoicing protocol built on Ethereum. It enables
@@ -251,7 +252,8 @@ function OverviewTab() {
           is planned after the FHE coprocessor reaches production stability.
         </InfoBox>
       </DocSection>
-
+    ),
+    'how-it-works': (
       <DocSection id="how-it-works" title="How it works">
         <p>The full lifecycle of a Zeroremit invoice:</p>
         <div className="space-y-3">
@@ -280,7 +282,8 @@ function OverviewTab() {
           ))}
         </div>
       </DocSection>
-
+    ),
+    'key-concepts': (
       <DocSection id="key-concepts" title="Key concepts">
         <div className="space-y-4">
           {[
@@ -318,7 +321,8 @@ function OverviewTab() {
           ))}
         </div>
       </DocSection>
-
+    ),
+    'network': (
       <DocSection id="network" title="Network & tokens">
         <SubSection title="Network">
           <p>Zeroremit is deployed on <strong className="text-zinc-200">Ethereum Sepolia</strong> (Chain ID: 11155111).</p>
@@ -344,7 +348,8 @@ function OverviewTab() {
           </InfoBox>
         </SubSection>
       </DocSection>
-
+    ),
+    'privacy-model': (
       <DocSection id="privacy-model" title="Privacy model">
         <p>
           Zeroremit protects <strong className="text-zinc-200">invoice amounts only</strong>. Wallet addresses,
@@ -380,13 +385,15 @@ function OverviewTab() {
           backend nor the smart contract ever stores a decrypted amount.
         </InfoBox>
       </DocSection>
-    </>
-  );
+    ),
+  };
+
+  return <>{sections[activeSectionId] || sections['what-is-zeroremit']}</>;
 }
 
-function ContractsTab() {
-  return (
-    <>
+function ContractsTab({ activeSectionId }) {
+  const sections = {
+    'payment-router': (
       <DocSection id="payment-router" title="PaymentRouter">
         <p>
           The central contract for all invoice operations. Handles creation,
@@ -427,7 +434,8 @@ function ContractsTab() {
           </div>
         </SubSection>
       </DocSection>
-
+    ),
+    'donation-vault': (
       <DocSection id="donation-vault" title="DonationVault">
         <p>
           Manages donation pages with optional funding goals and end dates.
@@ -448,7 +456,8 @@ function ContractsTab() {
           </div>
         </SubSection>
       </DocSection>
-
+    ),
+    'cusdc': (
       <DocSection id="cusdc" title="ConfidentialUSDC">
         <p>
           An FHE-wrapped ERC-20 token built on Zama's confidential token standard.
@@ -474,7 +483,8 @@ function ContractsTab() {
           to top up your cUSDC balance. The wrap operation requires an ERC-20 approve call first.
         </InfoBox>
       </DocSection>
-
+    ),
+    'invoice-types': (
       <DocSection id="invoice-types" title="Invoice types">
         <div className="space-y-4">
           {[
@@ -528,7 +538,8 @@ function ContractsTab() {
           ))}
         </div>
       </DocSection>
-
+    ),
+    'invoice-lifecycle': (
       <DocSection id="invoice-lifecycle" title="Invoice lifecycle">
         <ArchDiagram lines={[
           'Created (status: 0 — Pending)',
@@ -544,7 +555,8 @@ function ContractsTab() {
           A paid, cancelled, or expired invoice cannot change state.
         </p>
       </DocSection>
-
+    ),
+    'events': (
       <DocSection id="events" title="Events">
         <div className="space-y-2">
           {[
@@ -569,13 +581,15 @@ function ContractsTab() {
           after each event is processed.
         </InfoBox>
       </DocSection>
-    </>
-  );
+    ),
+  };
+
+  return <>{sections[activeSectionId] || sections['payment-router']}</>;
 }
 
-function ZamaTab() {
-  return (
-    <>
+function ZamaTab({ activeSectionId }) {
+  const sections = {
+    'fhe-overview': (
       <DocSection id="fhe-overview" title="FHE overview">
         <p>
           Fully Homomorphic Encryption (FHE) allows computations to be performed
@@ -603,7 +617,8 @@ function ZamaTab() {
           </div>
         </SubSection>
       </DocSection>
-
+    ),
+    'encryption-flow': (
       <DocSection id="encryption-flow" title="Encryption flow">
         <p>Encryption happens in the browser before any wallet interaction.</p>
         <ArchDiagram lines={[
@@ -624,7 +639,8 @@ function ZamaTab() {
           be decrypted by an authorized party through that wallet.
         </InfoBox>
       </DocSection>
-
+    ),
+    'decryption-flow': (
       <DocSection id="decryption-flow" title="Decryption flow">
         <p>
           Decryption is always on-demand and requires a wallet signature to prove
@@ -643,7 +659,8 @@ function ZamaTab() {
           '8. Plaintext amount displayed — never stored anywhere',
         ]} />
       </DocSection>
-
+    ),
+    'server-side-fhe': (
       <DocSection id="server-side-fhe" title="Server-side FHE">
         <p>
           When the Telegram bot or Zapier creates an invoice via the public API,
@@ -663,7 +680,8 @@ function ZamaTab() {
           main wallet. The burner is the invoice creator on-chain when automation is used.
         </InfoBox>
       </DocSection>
-
+    ),
+    'fhe-limits': (
       <DocSection id="fhe-limits" title="Limits & caveats">
         <div className="space-y-3">
           {[
@@ -680,13 +698,15 @@ function ZamaTab() {
           ))}
         </div>
       </DocSection>
-    </>
-  );
+    ),
+  };
+
+  return <>{sections[activeSectionId] || sections['fhe-overview']}</>;
 }
 
-function IntegrationsTab() {
-  return (
-    <>
+function IntegrationsTab({ activeSectionId }) {
+  const sections = {
+    'telegram-bot': (
       <DocSection id="telegram-bot" title="Telegram bot">
         <p>
           The Zeroremit Telegram bot lets users receive payment notifications,
@@ -740,7 +760,8 @@ function IntegrationsTab() {
           users to the web app for all transaction operations.
         </InfoBox>
       </DocSection>
-
+    ),
+    'zapier': (
       <DocSection id="zapier" title="Zapier">
         <p>
           Zeroremit works with Zapier generic Webhooks by Zapier step.
@@ -772,7 +793,8 @@ function IntegrationsTab() {
           and Facebook Lead Ads.
         </InfoBox>
       </DocSection>
-
+    ),
+    'webhooks': (
       <DocSection id="webhooks" title="Webhooks">
         <p>
           Outbound webhooks fire HMAC-SHA256 signed HTTP POST requests to
@@ -813,7 +835,8 @@ function IntegrationsTab() {
           </p>
         </SubSection>
       </DocSection>
-
+    ),
+    'burner-wallets': (
       <DocSection id="burner-wallets" title="Burner wallets">
         <p>
           A burner wallet is a dedicated Ethereum wallet whose private key is
@@ -859,7 +882,8 @@ function IntegrationsTab() {
           Dashboard then Automation tab after creation.
         </InfoBox>
       </DocSection>
-
+    ),
+    'api-keys': (
       <DocSection id="api-keys" title="API keys">
         <p>
           API keys are scoped Bearer tokens that authorize external systems to
@@ -885,13 +909,15 @@ function IntegrationsTab() {
           If a key is lost, revoke it and generate a new one.
         </InfoBox>
       </DocSection>
-    </>
-  );
+    ),
+  };
+
+  return <>{sections[activeSectionId] || sections['telegram-bot']}</>;
 }
 
-function ApiTab() {
-  return (
-    <>
+function ApiTab({ activeSectionId }) {
+  const sections = {
+    'authentication': (
       <DocSection id="authentication" title="Authentication">
         <p>
           The public API uses Bearer token authentication. Pass your API key
@@ -905,7 +931,8 @@ function ApiTab() {
           within your configured caps until the key is revoked.
         </InfoBox>
       </DocSection>
-
+    ),
+    'public-invoices': (
       <DocSection id="public-invoices" title="POST /api/public/invoices">
         <p>Create an invoice using the caller burner wallet. Requires an active API key.</p>
         <Endpoint
@@ -950,7 +977,8 @@ function ApiTab() {
           </div>
         </SubSection>
       </DocSection>
-
+    ),
+    'burner-endpoints': (
       <DocSection id="burner-endpoints" title="Burner endpoints">
         <p>Manage burner wallets. All routes trust the wallet field in the request body.</p>
         <Endpoint method="POST" path="/api/burner/create"
@@ -967,7 +995,8 @@ function ApiTab() {
         <Endpoint method="POST" path="/api/burner/enable-automation" desc="Re-encrypts server key. User must decrypt user blob first." params={[{ field: 'wallet', type: 'string', required: true, desc: 'Owner wallet' }, { field: 'rawPrivateKey', type: 'string', required: true, desc: 'Decrypted key from browser' }]} />
         <Endpoint method="DELETE" path="/api/burner" desc="Full removal. Cascades to all API keys." params={[{ field: 'wallet', type: 'string', required: true, desc: 'Owner wallet' }]} />
       </DocSection>
-
+    ),
+    'key-endpoints': (
       <DocSection id="key-endpoints" title="API key endpoints">
         <Endpoint method="POST" path="/api/burner/keys"
           desc="Generate a new API key. Returns plaintext key ONCE. Requires burner to exist."
@@ -989,7 +1018,8 @@ function ApiTab() {
         <Endpoint method="GET"    path="/api/burner/keys?wallet=0x..." desc="List all keys. No plaintext or hashes returned." />
         <Endpoint method="DELETE" path="/api/burner/keys/:id"          desc="Soft-delete. Sets revokedAt. Key stops working immediately." params={[{ field: 'wallet', type: 'string', required: true, desc: 'Owner wallet' }]} />
       </DocSection>
-
+    ),
+    'webhook-endpoints': (
       <DocSection id="webhook-endpoints" title="Webhook endpoints">
         <Endpoint method="POST" path="/api/webhooks"
           desc="Register a new endpoint. Returns signing secret ONCE."
@@ -1005,14 +1035,16 @@ function ApiTab() {
         <Endpoint method="POST"   path="/api/webhooks/:id/test"             desc="Enqueue a dummy payload through the full worker pipeline." params={[{ field: 'wallet', type: 'string', required: true, desc: 'Owner wallet' }]} />
         <Endpoint method="GET"    path="/api/webhooks/:id/deliveries?wallet=0x..." desc="Last 20 delivery attempts for this endpoint." />
       </DocSection>
-
+    ),
+    'telegram-endpoints': (
       <DocSection id="telegram-endpoints" title="Telegram endpoints">
         <Endpoint method="POST" path="/api/telegram/link-code"          desc="Generate a one-time link code (10 min TTL)." params={[{ field: 'wallet', type: 'string', required: true, desc: 'Wallet to link' }]} response={`{ "code": "zr_a8f3k2x9", "expiresAt": "1735689600000" }`} />
         <Endpoint method="GET"  path="/api/telegram/status?wallet=0x..." desc="Check if wallet is linked and return notification preferences." />
         <Endpoint method="POST" path="/api/telegram/unlink"              desc="Remove the Telegram link for a wallet." params={[{ field: 'wallet', type: 'string', required: true, desc: 'Wallet to unlink' }]} />
         <Endpoint method="POST" path="/api/telegram/prefs"               desc="Update notification preferences." params={[{ field: 'wallet', type: 'string', required: true, desc: 'Linked wallet' }, { field: 'prefs', type: 'object', required: true, desc: 'Partial prefs object e.g. { invoicePaid: true }' }]} />
       </DocSection>
-
+    ),
+    'errors': (
       <DocSection id="errors" title="Error codes">
         <div className="space-y-1.5">
           {[
@@ -1033,13 +1065,15 @@ function ApiTab() {
           All error responses follow the shape: <code className="text-sky-400">{'{ "error": "message" }'}</code>
         </p>
       </DocSection>
-    </>
-  );
+    ),
+  };
+
+  return <>{sections[activeSectionId] || sections['authentication']}</>;
 }
 
-function ArchitectureTab() {
-  return (
-    <>
+function ArchitectureTab({ activeSectionId }) {
+  const sections = {
+    'system-overview': (
       <DocSection id="system-overview" title="System overview">
         <ArchDiagram lines={[
           '┌─────────────────────────────────────────────────────────────┐',
@@ -1049,7 +1083,7 @@ function ArchitectureTab() {
           '                        │ REST API',
           '┌───────────────────────▼─────────────────────────────────────┐',
           '│  Backend (Node.js + Express)                                │',
-          '│  Prisma ORM · PostgreSQL · Viem (Node) · Zama SDK (Node)       │',
+          '│  Prisma ORM · PostgreSQL · Viem (Node) · Zama SDK (Node)   │',
           '│                                                             │',
           '│  ┌─────────────┐  ┌─────────────┐  ┌────────────────────┐ │',
           '│  │  Indexer    │  │  Bot        │  │  Webhook Worker    │ │',
@@ -1068,7 +1102,8 @@ function ArchitectureTab() {
           '└─────────────────────────────────────────────────────────────┘',
         ]} />
       </DocSection>
-
+    ),
+    'indexer': (
       <DocSection id="indexer" title="Chain indexer">
         <p>
           The indexer is a background service that polls Ethereum Sepolia for
@@ -1094,7 +1129,8 @@ function ArchitectureTab() {
           </ul>
         </SubSection>
       </DocSection>
-
+    ),
+    'dual-key': (
       <DocSection id="dual-key" title="Dual-key encryption">
         <ArchDiagram lines={[
           '              Burner Private Key (raw)',
@@ -1118,7 +1154,8 @@ function ArchitectureTab() {
           private key — they are fully independent.
         </p>
       </DocSection>
-
+    ),
+    'webhook-queue': (
       <DocSection id="webhook-queue" title="Webhook queue">
         <ArchDiagram lines={[
           'Indexer detects on-chain event',
@@ -1143,7 +1180,8 @@ function ArchitectureTab() {
           '  At 10 failures: auto-disable endpoint',
         ]} />
       </DocSection>
-
+    ),
+    'security-model': (
       <DocSection id="security-model" title="Security model">
         <div className="space-y-3">
           {[
@@ -1189,7 +1227,8 @@ function ArchitectureTab() {
           ))}
         </div>
       </DocSection>
-
+    ),
+    'tech-stack': (
       <DocSection id="tech-stack" title="Tech stack">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
@@ -1211,13 +1250,15 @@ function ArchitectureTab() {
           ))}
         </div>
       </DocSection>
-    </>
-  );
+    ),
+  };
+
+  return <>{sections[activeSectionId] || sections['system-overview']}</>;
 }
 
-function BackendTab() {
-  return (
-    <>
+function BackendTab({ activeSectionId }) {
+  const sections = {
+    'backend-overview': (
       <DocSection id="backend-overview" title="Overview">
         <p>
           The Zeroremit backend is a Node.js service built with Express 5 that powers the
@@ -1249,7 +1290,8 @@ function BackendTab() {
           is indexed.
         </InfoBox>
       </DocSection>
-
+    ),
+    'backend-architecture': (
       <DocSection id="backend-architecture" title="Architecture">
         <ArchDiagram lines={[
           '┌─────────────────────────────────────────────────────────────┐',
@@ -1293,7 +1335,6 @@ function BackendTab() {
           '   │  (Vercel)         │',
           '   └───────────────────┘',
         ]} />
-
         <SubSection title="Event flow">
           <ArchDiagram lines={[
             'Wallet creates invoice (frontend → contract)',
@@ -1310,7 +1351,6 @@ function BackendTab() {
             'Frontend queries /api/invoices for refreshed list',
           ]} />
         </SubSection>
-
         <SubSection title="Project structure">
           <ArchDiagram lines={[
             'backend/src/',
@@ -1354,7 +1394,8 @@ function BackendTab() {
           ]} />
         </SubSection>
       </DocSection>
-
+    ),
+    'backend-database': (
       <DocSection id="backend-database" title="Database (PostgreSQL)">
         <p>
           The backend uses <strong className="text-zinc-200">PostgreSQL</strong> with Prisma ORM.
@@ -1430,7 +1471,8 @@ function BackendTab() {
           ]} />
         </SubSection>
       </DocSection>
-
+    ),
+    'backend-rpc-fallback': (
       <DocSection id="backend-rpc-fallback" title="RPC fallback system">
         <p>
           The backend connects to Ethereum Sepolia through three RPC providers configured
@@ -1501,7 +1543,8 @@ function BackendTab() {
           <code className="text-sky-400 ml-1">https://eth-sepolia.g.alchemy.com/v2/***</code>
         </InfoBox>
       </DocSection>
-
+    ),
+    'backend-indexer': (
       <DocSection id="backend-indexer" title="Chain indexer">
         <p>
           The indexer is a background service that polls Ethereum Sepolia for contract
@@ -1561,7 +1604,8 @@ function BackendTab() {
           </ul>
         </SubSection>
       </DocSection>
-
+    ),
+    'backend-bot': (
       <DocSection id="backend-bot" title="Telegram bot">
         <p>
           The Telegram bot runs in polling mode — no public webhook URL required.
@@ -1631,7 +1675,8 @@ function BackendTab() {
           ]} />
         </SubSection>
       </DocSection>
-
+    ),
+    'backend-webhooks': (
       <DocSection id="backend-webhooks" title="Webhook delivery">
         <p>
           The webhook delivery system uses PostgreSQL as a durable queue.
@@ -1691,7 +1736,8 @@ function BackendTab() {
           </div>
         </SubSection>
       </DocSection>
-
+    ),
+    'backend-automation': (
       <DocSection id="backend-automation" title="Automation layer">
         <p>
           The automation stack lets external systems (Telegram bot, Zapier, custom scripts)
@@ -1744,7 +1790,8 @@ function BackendTab() {
           ]} />
         </SubSection>
       </DocSection>
-
+    ),
+    'backend-deployment': (
       <DocSection id="backend-deployment" title="Deployment (Render)">
         <p>
           The backend deploys to <strong className="text-zinc-200">Render</strong> with a
@@ -1792,7 +1839,8 @@ function BackendTab() {
           the free tier service from sleeping.
         </InfoBox>
       </DocSection>
-
+    ),
+    'backend-env': (
       <DocSection id="backend-env" title="Environment variables">
         <p>
           All secrets are stored as environment variables — never committed to Git.
@@ -1826,60 +1874,73 @@ function BackendTab() {
           to re-enable automation.
         </InfoBox>
       </DocSection>
-    </>
-  );
+    ),
+  };
+
+  return <>{sections[activeSectionId] || sections['backend-overview']}</>;
 }
 
 // ── Tab content map ───────────────────────────────────────────────────────────
-const TAB_CONTENT = {
-  overview:     <OverviewTab />,
-  contracts:    <ContractsTab />,
-  backend:      <BackendTab />,
-  zama:         <ZamaTab />,
-  integrations: <IntegrationsTab />,
-  api:          <ApiTab />,
-  architecture: <ArchitectureTab />,
+// Now each tab component receives activeSectionId and renders only that section
+const TAB_CONTENT_MAP = {
+  overview:     (sectionId) => <OverviewTab activeSectionId={sectionId} />,
+  contracts:    (sectionId) => <ContractsTab activeSectionId={sectionId} />,
+  backend:      (sectionId) => <BackendTab activeSectionId={sectionId} />,
+  zama:         (sectionId) => <ZamaTab activeSectionId={sectionId} />,
+  integrations: (sectionId) => <IntegrationsTab activeSectionId={sectionId} />,
+  api:          (sectionId) => <ApiTab activeSectionId={sectionId} />,
+  architecture: (sectionId) => <ArchitectureTab activeSectionId={sectionId} />,
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default function Docs() {
   const [activeTab,     setActiveTab]     = useState('overview');
-  const [activeSection, setActiveSection] = useState('');
+  const [activeSection, setActiveSection] = useState('what-is-zeroremit');
   const [sidebarOpen,   setSidebarOpen]   = useState(false);
   const contentRef = useRef(null);
 
   const currentTab = TABS.find(t => t.id === activeTab);
 
-  // Track active section via IntersectionObserver
-  useEffect(() => {
-    if (!contentRef.current) return;
-    const sections = contentRef.current.querySelectorAll('section[id]');
-    const obs = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) setActiveSection(entry.target.id);
-        });
-      },
-      { rootMargin: '-20% 0px -70% 0px' }
-    );
-    sections.forEach(s => obs.observe(s));
-    return () => obs.disconnect();
-  }, [activeTab]);
+  // When activeSection changes, scroll the content area back to top
+  // since we're now rendering only one section at a time
 
-  const scrollToSection = (id) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setActiveSection(id);
-      setSidebarOpen(false);
+   const handleSectionChange = (id) => {
+    setActiveSection(id);
+    setSidebarOpen(false);
+    
+    // Instead of attaching to top, scroll with an offset
+    // This prevents the heading from going under the navbar
+    const offset = 160; // Adjust this value based on your navbar + tabbar height
+    const bodyRect = document.body.getBoundingClientRect().top;
+    const element = contentRef.current;
+    if (element) {
+        const elementRect = element.getBoundingClientRect().top;
+        const elementPosition = elementRect - bodyRect;
+        const offsetPosition = elementPosition - offset;
+
+        window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+        });
     }
   };
 
   const handleTabChange = (tabId) => {
+    const tab = TABS.find(t => t.id === tabId);
     setActiveTab(tabId);
-    setActiveSection('');
+    setActiveSection(tab?.sections[0]?.id || '');
     setSidebarOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Scroll to the top of the content area, not the absolute top of the website
+    const offset = 160;
+    const element = contentRef.current;
+    if (element) {
+        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+        window.scrollTo({
+            top: elementPosition - offset,
+            behavior: 'smooth'
+        });
+    }
   };
 
   return (
@@ -1973,7 +2034,7 @@ export default function Docs() {
               {currentTab?.sections.map(section => (
                 <button
                   key={section.id}
-                  onClick={() => scrollToSection(section.id)}
+                  onClick={() => handleSectionChange(section.id)}
                   className={`w-full text-left px-3 py-2 text-[11px] font-mono transition-all ${
                     activeSection === section.id
                       ? 'text-sky-400 bg-sky-950/30 border-l-2 border-sky-500 pl-2.5'
@@ -1995,7 +2056,7 @@ export default function Docs() {
 
           {/* ── Main content ── */}
           <main ref={contentRef} className="flex-1 min-w-0 px-6 sm:px-10 py-10 lg:pl-10 lg:pr-16">
-            {TAB_CONTENT[activeTab]}
+            {TAB_CONTENT_MAP[activeTab]?.(activeSection)}
           </main>
 
           {/* ── Right gutter (on-page nav) ── */}
@@ -2006,7 +2067,7 @@ export default function Docs() {
             {currentTab?.sections.map(section => (
               <button
                 key={section.id}
-                onClick={() => scrollToSection(section.id)}
+                onClick={() => handleSectionChange(section.id)}
                 className={`block w-full text-left text-[10px] font-mono py-1 transition-colors ${
                   activeSection === section.id
                     ? 'text-sky-400'
